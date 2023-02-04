@@ -51,7 +51,7 @@ import Language.PureScript.Pretty
       typeAtomAsBox,
       typeDiffAsBox,
       prettyPrintValue )
-import           Language.PureScript.Errors (prettyPrintRef)
+-- import           Language.PureScript.Errors (prettyPrintRef)
 import           Language.PureScript.Pretty.Common (endWith)
 import           Language.PureScript.PSString (decodeStringWithReplacement)
 import Language.PureScript.Types
@@ -70,6 +70,38 @@ import qualified Text.Parsec.Error as PE
 import           Text.Parsec.Error (Message(..))
 import qualified Text.PrettyPrint.Boxes as Box
 import           Witherable (wither)
+-- purserl
+
+-- import           Language.PureScript.Errors (prettyPrintRef)
+import Language.PureScript.AST.Declarations (NameSource(..))
+import Language.PureScript.Names (showOp)
+
+prettyPrintRef :: DeclarationRef -> Maybe Text
+prettyPrintRef (TypeRef _ pn Nothing) =
+  Just $ runProperName pn <> "(..)"
+prettyPrintRef (TypeRef _ pn (Just [])) =
+  Just $ runProperName pn
+prettyPrintRef (TypeRef _ pn (Just dctors)) =
+  Just $ runProperName pn <> "(" <> T.intercalate ", " (map runProperName dctors) <> ")"
+prettyPrintRef (TypeOpRef _ op) =
+  Just $ "type " <> showOp op
+prettyPrintRef (ValueRef _ ident) =
+  Just $ showIdent ident
+prettyPrintRef (ValueOpRef _ op) =
+  Just $ showOp op
+prettyPrintRef (TypeClassRef _ pn) =
+  Just $ "class " <> runProperName pn
+prettyPrintRef (TypeInstanceRef _ ident UserNamed) =
+  Just $ showIdent ident
+prettyPrintRef (TypeInstanceRef _ _ CompilerNamed) =
+  Nothing
+prettyPrintRef (ModuleRef _ name) =
+  Just $ "module " <> runModuleName name
+prettyPrintRef ReExportRef{} =
+  Nothing
+
+
+--
 
 newtype ErrorSuggestion = ErrorSuggestion Text
 

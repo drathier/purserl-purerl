@@ -14,7 +14,7 @@ import Language.PureScript.Erl.Make.Monad
       readTextFile,
       writeTextFile,
       copyFile )
-import qualified Language.PureScript as P
+-- import qualified Language.PureScript as P
 import Control.Monad.Supply ( SupplyT )
 import qualified Data.Map as M
 import           Data.List ((\\))
@@ -28,7 +28,7 @@ import           System.Directory (getCurrentDirectory)
 import           Data.Version (showVersion)
 import           Data.Time.Clock (UTCTime)
 
-import qualified Paths_purerl as Paths
+-- import qualified Paths_purerl as Paths
 
 import           Language.PureScript.Erl.CodeGen.Common (erlModuleName, erlModuleNameBase, atomModuleName, atom, ModuleType(..), runAtom)
 import           Language.PureScript.Erl.CodeGen (moduleToErl, CodegenEnvironment)
@@ -38,6 +38,13 @@ import Language.PureScript.Erl.Errors ( errorMessage )
 import Language.PureScript.Erl.Errors.Types
     ( SimpleErrorMessage(MissingFFIModule, UnnecessaryFFIModule) )
 import Data.Either (fromRight)
+-- purserl
+-- import qualified Language.PureScript as P
+import qualified Language.PureScript.Names as P
+
+-- import qualified Paths_purerl as Paths
+import qualified Paths_purescript as Paths
+--
 
 data MakeActions m = MakeActions
   { codegen :: CodegenEnvironment -> CF.Module CF.Ann -> SupplyT m ()

@@ -13,9 +13,9 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Control.Monad.State (State, runState, modify, get)
 import qualified Language.PureScript.Environment as E
-import Language.PureScript (ModuleName, Qualified (Qualified), ProperName (ProperName), nullSourceAnn, Ident, Environment, tyRecord)
+-- import Language.PureScript (ModuleName, Qualified (Qualified), ProperName (ProperName), nullSourceAnn, Ident, Environment, tyRecord)
 import Debug.Trace (trace)
-import qualified Language.PureScript as P
+-- import qualified Language.PureScript as P
 import qualified Data.Text as Text
 import Control.Monad ( (<=<) )
 import Language.PureScript.Erl.CodeGen.Common
@@ -26,7 +26,18 @@ import Language.PureScript.Label (runLabel)
 import Data.Bifunctor ( Bifunctor(bimap) )
 import qualified Language.PureScript.Erl.CodeGen.Constants.PureScriptModules as EM
 import Data.Either (fromRight)
+-- purserl
+-- import Language.PureScript (ModuleName, Qualified (Qualified), ProperName (ProperName), nullSourceAnn, Ident, Environment, tyRecord)
+import Language.PureScript.Names (ModuleName, Qualified (Qualified), ProperName (ProperName), Ident)
+import Language.PureScript.Environment (Environment, tyRecord)
+import Language.PureScript.AST.SourcePos (nullSourceAnn)
 
+
+-- import qualified Language.PureScript as P
+import qualified Language.PureScript.Names as P
+import qualified Language.PureScript.Environment as P
+import qualified Language.PureScript.Types as P
+--
 
 uncurryType :: Int -> EType -> Maybe EType
 uncurryType arity = uc []

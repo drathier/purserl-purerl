@@ -7,7 +7,8 @@ module Version where
 import Prelude
 
 import Data.Version (showVersion)
-import Paths_purerl as Paths
+-- import Paths_purerl as Paths
+import Paths_purescript as Paths
 
 #if !(defined RELEASE) && !(defined __GHCIDE__)
 import qualified Development.GitRev as GitRev

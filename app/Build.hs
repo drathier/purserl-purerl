@@ -6,7 +6,8 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TupleSections #-}
 
-module Build (parser, compile, compile', BuildOptions (..)) where
+-- module Build (parser, compile, compile', BuildOptions (..), inferForeignModule') where
+module Build where
 
 import Control.Exception (tryJust)
 import Control.Monad (forM, guard, join, unless, when)
@@ -33,7 +34,7 @@ import qualified Data.Text as T
 import Data.Time.Clock (UTCTime)
 import Data.Traversable (for)
 import GHC.Generics (Generic)
-import qualified Language.PureScript as P
+-- import qualified Language.PureScript as P
 import qualified Language.PureScript.CoreFn as CoreFn
 import qualified Language.PureScript.CoreFn.FromJSON as CoreFn
 import Language.PureScript.Erl.CodeGen (buildCodegenEnvironment)
@@ -46,13 +47,13 @@ import Language.PureScript.Erl.Errors as E
     prettyPrintMultipleErrors,
     prettyPrintMultipleWarnings,
   )
-import Language.PureScript.Erl.Errors.JSON
-  ( JSONResult (JSONResult),
-    toJSONErrors,
-  )
+-- import Language.PureScript.Erl.Errors.JSON
+--   ( JSONResult (JSONResult),
+--     toJSONErrors,
+--   )
 import qualified Language.PureScript.Erl.Make as Make
 import qualified Language.PureScript.Erl.Make.Monad as MM
-import Language.PureScript.Erl.Run (runProgram)
+-- import Language.PureScript.Erl.Run (runProgram)
 import qualified Language.PureScript.Make.Cache as Cache
 import qualified Options.Applicative as Opts
 import Protolude (hush, intercalate, (&))
@@ -65,6 +66,14 @@ import System.FilePath.Glob (glob)
 import System.IO (hPutStr, hPutStrLn, stderr)
 import System.IO.Error (isDoesNotExistError)
 import Prelude
+-- purserl
+-- import qualified Language.PureScript as P
+import qualified Language.PureScript.Names as P
+import qualified Language.PureScript.Externs as P
+import qualified Language.PureScript.Environment as P
+import qualified Language.PureScript.Errors as P
+import qualified Language.PureScript.Options as P
+--
 
 data BuildOptions = BuildOptions
   { buildOutputDir :: FilePath,
@@ -128,7 +137,7 @@ compile' BuildOptions {..} = do
                 liftIO $ hPutStrLn stderr $ "Error parsing externs: " <> extern
                 pure Nothing
 
-      let fromCorefn = case res of
+      let (fromCorefn :: MM.Make (Either NoCoreFn ModResult)) = case res of
             Just res' -> do
               let sourceFile = fromJust $ getModulePath res'
               exists <- liftIO $ doesFileExist sourceFile
@@ -144,6 +153,7 @@ compile' BuildOptions {..} = do
             Nothing -> do
               liftIO $ hPutStrLn stderr $ "Error parsing corefn: " <> corefn
               pure $ Left $ ParseError corefn
+
           fromCache =
             M.lookup moduleName' cache & maybe
               (pure Nothing)
@@ -227,9 +237,10 @@ compile' BuildOptions {..} = do
 
   printWarningsAndErrors False False makeWarnings makeErrors
 
-  case buildRun of
-    Nothing -> pure ()
-    Just runModule -> runProgram $ T.pack runModule
+  -- purserl skipping run
+  -- case buildRun of
+  --   Nothing -> pure ()
+  --   Just runModule -> runProgram $ T.pack runModule
 
   pure $ either (const Nothing) Just makeErrors
   where
@@ -252,12 +263,12 @@ compile' BuildOptions {..} = do
           hPutStrLn stderr (E.prettyPrintMultipleErrors ppeOpts errs)
           exitFailure
         Right _ -> return ()
-    printWarningsAndErrors verbose True warnings errors = do
-      hPutStrLn stderr . LBU8.toString . A.encode $
-        JSONResult
-          (toJSONErrors verbose E.Warning warnings)
-          (either (toJSONErrors verbose E.Error) (const []) errors)
-      either (const exitFailure) (const (return ())) errors
+--     printWarningsAndErrors verbose True warnings errors = do
+--       hPutStrLn stderr . LBU8.toString . A.encode $
+--         JSONResult
+--           (toJSONErrors verbose E.Warning warnings)
+--           (either (toJSONErrors verbose E.Error) (const []) errors)
+--       either (const exitFailure) (const (return ())) errors
 
     getModulePath :: Value -> Maybe FilePath
     getModulePath corefn =
@@ -265,22 +276,22 @@ compile' BuildOptions {..} = do
         Object o | Just (String filename) <- Json.Map.lookup "modulePath" o -> Just $ T.unpack filename
         _ -> Nothing
 
-    getCacheInfo :: FilePath -> FilePath -> FilePath -> MM.Make (Maybe FilePath, Map FilePath (UTCTime, MM.Make Cache.ContentHash))
-    getCacheInfo corefn extern sourceFile = do
-      let getInfo fp = do
-            ts <- MM.getTimestamp fp
-            pure (ts, MM.hashFile fp)
-      foreignFile <- liftIO $ inferForeignModule' sourceFile
-      newCacheInfo <- M.fromList <$> traverse (\fp -> (fp,) <$> getInfo fp) (corefn : extern : maybeToList foreignFile)
-      pure (foreignFile, newCacheInfo)
+getCacheInfo :: FilePath -> FilePath -> FilePath -> MM.Make (Maybe FilePath, Map FilePath (UTCTime, MM.Make Cache.ContentHash))
+getCacheInfo corefn extern sourceFile = do
+  let getInfo fp = do
+        ts <- MM.getTimestamp fp
+        pure (ts, MM.hashFile fp)
+  foreignFile <- liftIO $ inferForeignModule' sourceFile
+  newCacheInfo <- M.fromList <$> traverse (\fp -> (fp,) <$> getInfo fp) (corefn : extern : maybeToList foreignFile)
+  pure (foreignFile, newCacheInfo)
 
-    inferForeignModule' :: MonadIO m => FilePath -> m (Maybe FilePath)
-    inferForeignModule' path = do
-      let jsFile = replaceExtension path "erl"
-      exists <- liftIO $ doesFileExist jsFile
-      if exists
-        then return (Just jsFile)
-        else return Nothing
+inferForeignModule' :: MonadIO m => FilePath -> m (Maybe FilePath)
+inferForeignModule' path = do
+  let jsFile = replaceExtension path "erl"
+  exists <- liftIO $ doesFileExist jsFile
+  if exists
+    then return (Just jsFile)
+    else return Nothing
 
 -- | Read a JSON file in the 'Make' monad, returning 'Nothing' if the file does
 -- not exist or could not be parsed. Errors are captured using the 'MonadError'

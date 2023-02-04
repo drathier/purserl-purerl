@@ -2,7 +2,8 @@ module Language.PureScript.Erl.CodeGen.Constants.PureScriptModules
 
 where
 
-import Language.PureScript (ModuleName(..))
+-- import Language.PureScript (ModuleName(..))
+import Language.PureScript.Names (ModuleName(..))
 
 effect :: ModuleName
 effect = ModuleName "Effect"

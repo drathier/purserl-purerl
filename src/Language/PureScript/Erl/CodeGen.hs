@@ -28,7 +28,7 @@ import qualified Data.Set as Set
 import qualified Data.Text as T
 import Data.Traversable (forM)
 import Debug.Trace (traceM)
-import qualified Language.PureScript as P
+-- import qualified Language.PureScript as P
 import Language.PureScript.AST (SourceSpan, nullSourceSpan)
 import qualified Language.PureScript.Constants.Libs as C
 import qualified Language.PureScript.Constants.Prim as C
@@ -50,7 +50,7 @@ import Language.PureScript.Environment as E
     tyFunction,
   )
 import Language.PureScript.Erl.CodeGen.AST as AST
-import Language.PureScript.Erl.CodeGen.CheckedWrapper (typecheckWrapper)
+-- import Language.PureScript.Erl.CodeGen.CheckedWrapper (typecheckWrapper)
 import Language.PureScript.Erl.CodeGen.Common
   ( ModuleType (ForeignModule, PureScriptModule),
     atomModuleName,
@@ -89,7 +89,33 @@ import Language.PureScript.Types
 import Prelude.Compat
 import Language.PureScript.Erl.CodeGen.Types (ETypeEnv, uncurriedFnTypes, replaceVars, translateType, uncurryType)
 import Language.PureScript.CoreFn.Laziness (applyLazinessTransform)
-import Language.PureScript (internalError)
+-- import Language.PureScript (internalError)
+-- ### purserl
+
+-- import qualified Language.PureScript as P
+import qualified Control.Monad.Supply as P
+import qualified Data.Version (Version)
+import qualified Language.PureScript.AST as P
+import qualified Language.PureScript.Comments as P
+import qualified Language.PureScript.Crash as P
+import qualified Language.PureScript.Environment as P
+import qualified Language.PureScript.Errors as P hiding (indent)
+import qualified Language.PureScript.Externs as P
+import qualified Language.PureScript.Linter as P
+import qualified Language.PureScript.ModuleDependencies as P
+import qualified Language.PureScript.Names as P
+import qualified Language.PureScript.Options as P
+import qualified Language.PureScript.Pretty as P
+import qualified Language.PureScript.Renamer as P
+import qualified Language.PureScript.Roles as P
+import qualified Language.PureScript.Sugar as P
+import qualified Language.PureScript.TypeChecker as P
+import qualified Language.PureScript.Types as P
+
+-- import Language.PureScript (internalError)
+import Language.PureScript.Crash (internalError)
+--
+
 
 identToTypeclassCtor :: Ident -> Atom
 identToTypeclassCtor a = Atom Nothing (runIdent' a)
@@ -329,7 +355,8 @@ moduleToErl' cgEnv@(CodegenEnvironment env explicitArities) (Module _ _ mn _ _ d
 
     let attributes = findAttributes decls
 
-    safeDecls <- concat <$> traverse (typecheckWrapper mn) erlDecls
+    -- safeDecls <- concat <$> traverse (typecheckWrapper mn) erlDecls
+    safeDecls <- pure mempty
 
 
     let fnl (EFunctionDef _ _ fnName args _) = Just (fnName, length args)
