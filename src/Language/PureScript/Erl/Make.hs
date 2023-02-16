@@ -112,8 +112,6 @@ buildActions outputDir foreigns usePrefix generateChecked =
           ]
         includeHrl :: T.Text
         includeHrl = "-include(\"./" <> erlModuleNameBase mn <> ".hrl\").\n"
-    let erl :: T.Text = T.unlines $ map ("% " <>) prefix ++ directives exports PureScriptModule ++  [ pretty ]
-    lift $ writeTextFile (outFile mn) $ TE.encodeUtf8 erl
 
     when generateChecked $ do
       let erlchecked :: T.Text = T.unlines $ map ("% " <>) prefix ++ directives checkedExports PureScriptCheckedModule ++  [ prettyChecked ]
@@ -121,9 +119,13 @@ buildActions outputDir foreigns usePrefix generateChecked =
 
     let hrl :: T.Text = T.unlines $ map ("% " <>) prefix ++ [ prettyDecls ]
     lift $ writeTextFile (hrlFile mn) $ TE.encodeUtf8 hrl
-    
+
     let foreignHrl :: T.Text = T.unlines $ map ("% " <>) prefix ++ [ includeHrl, prettySpecs ]
     lift $ writeTextFile (foreignHrlFile mn) $ TE.encodeUtf8 foreignHrl
+
+    -- NOTE[drathier]: write erl file last, so everything is there when erl file has been written
+    let erl :: T.Text = T.unlines $ map ("% " <>) prefix ++ directives exports PureScriptModule ++  [ pretty ]
+    lift $ writeTextFile (outFile mn) $ TE.encodeUtf8 erl
 
   ffiCodegen :: CF.Module CF.Ann -> Make ()
   ffiCodegen m = do
