@@ -12,7 +12,7 @@ import Prelude.Compat
 import Control.Monad.Supply.Class (MonadSupply)
 
 import Language.PureScript.Erl.CodeGen.AST
-    ( everywhereOnErl, Erl(..), pattern EApp, Atom )
+    ( everywhereOnErl, Erl(..), pattern EApp, Atom, curriedApp )
 import Language.PureScript.Erl.CodeGen.Optimizer.MagicDo
     ( magicDo )
 import Language.PureScript.Erl.CodeGen.Optimizer.Blocks
@@ -34,13 +34,12 @@ import Language.PureScript.Erl.CodeGen.Optimizer.Unused (removeUnusedFuns)
 import Data.Map (Map)
 import Language.PureScript.Erl.CodeGen.Optimizer.Memoize (addMemoizeAnnotations)
 import Control.Monad ((<=<))
-
 -- |
 -- Apply a series of optimizer passes to simplified Javascript code
 --
 optimize :: MonadSupply m => [(Atom, Int)] -> Map Atom Int -> [Erl] -> m [Erl]
-optimize exports memoizable es = removeUnusedFuns exports <$>
-  traverse go es
+optimize exports memoizable es =
+  removeUnusedFuns exports <$> traverse go es
   where
   go erl =
    do
@@ -53,6 +52,7 @@ optimize exports memoizable es = removeUnusedFuns exports <$>
     erl'' <- untilFixedPoint tidyUp
       =<< untilFixedPoint (return . magicDo expander) 
       erl'
+
     pure $ addMemoizeAnnotations memoizable erl''
 
   expander = buildExpander es
@@ -88,20 +88,34 @@ untilFixedPoint f = go
 -- level and not worrying about any inner scopes.
 --
 buildExpander :: [Erl] -> Erl -> Erl
-buildExpander = replaceAtoms . foldr go []
+buildExpander = replaceUpdates . foldr go []
   where
   go = \case
-    EFunctionDef _ _ name [] e | isSimpleApp e  -> ((name, e) :)
+    EFunctionDef _ _ name [] e | isSimpleApp e && size e <= 5 -> ((name, e) :)
     _ -> id
   
-  replaceAtoms updates = everywhereOnErl (replaceAtom updates)
+  replaceUpdates updates = everywhereOnErl (replaceUpdate updates)
   
-  replaceAtom updates = \case
+  replaceUpdate updates = \case
+    -- Regular form e.g. bind()
     EApp _ (EAtomLiteral a) [] | Just e <- lookup a updates
-      -> replaceAtoms updates e
+      -> replaceUpdates updates e
+    -- Uncurried form, e.g. bind(e1, e2) where bind is the overload for bind/2, bind/0, such that bind(e1, e2) ~ ((bind())(e1))(e2)
+    -- IF the original replacement was valid by way of being eligible to be inlined, this one should be too, doing both steps in 1
+    
+    EApp _ (EAtomLiteral a) args | Just e <- lookup a updates
+      -> replaceUpdates updates $ curriedApp args e
+
     other -> other
 
   -- simple nested applications that look similar to floated synthetic apps
   isSimpleApp (EApp _ e1 es) = isSimpleApp e1 && all isSimpleApp es
   isSimpleApp (EAtomLiteral _) = True
   isSimpleApp _ = False
+
+  -- Doesn't particularly matter what the size metric is, just that we have empirically determined
+  -- a cutoff for inlining. This is per-definition, so technically we could come up with a case where
+  -- we inline a huge expression because it is never large at any step and we recursively inline - but this
+  -- doesn't seem a problem currently.
+  size (EApp _ e1 es) = size e1 + sum (size <$> es)
+  size _ = 1 :: Integer

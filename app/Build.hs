@@ -198,7 +198,7 @@ compile' BuildOptions {..} = do
     -- TODO now we are asking needsBuild twice
     buildInfo <- traverse (\m -> (m,) <$> needsBuild m) modules'
     let needToBuild = mapMaybe (\(res, (_, ntb)) -> if ntb then Just res else Nothing) buildInfo
-
+    
     makeRes <- if null needToBuild
       then do
         pure []
